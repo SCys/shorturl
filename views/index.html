@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>简写|ShortURL</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@2.0.3/build/pure.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/zepto@1.2.0/dist/zepto.min.js"></script>
+
+    <style>
+      html,
+      button,
+      input,
+      select,
+      textarea,
+      .pure-g [class*="pure-u"] {
+        font-family: "Fira Code", sans-serif !important;
+      }
+
+      body {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+
+        overflow: hidden;
+      }
+
+      #url {
+        padding: 1em;
+        font-size: 2em;
+        list-style: 4em;
+      }
+      #description {
+        font-size: 1.2em;
+        padding: 1em;
+        margin: 0 2em 2em 2em;
+      }
+
+      #description.success {
+        display: flex;
+        justify-content: space-between;
+
+        border-bottom: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        border-left: 1px solid #ccc;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main" class="pure-g">
+      <div class="pure-u pure-u-1-5"></div>
+      <div class="pure-u pure-u-3-5">
+        <form id="form" class="pure-form">
+          <input class="pure-input-1" type="url" name="url" id="url" required placeholder="Long URL" />
+
+          <div id="description" class="success hidden">
+            <div class="url"></div>
+            <div class="action">Copy</div>
+          </div>
+        </form>
+      </div>
+      <div class="pure-u pure-u-1-5"></div>
+    </div>
+  </body>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/firacode@5.2.0/distr/fira_code.min.css" />
+</html>
+
+<script>
+  const prefix = "https://mz.ci/r/";
+  const elmURL = $("#url");
+  const elmDesc = $("#description");
+
+  function validURL() {
+    const url = new URL(elmURL.val());
+
+    // ignore other protocol
+    if (["https:", "http:"].indexOf(url.protocol) == -1) return false;
+    // ignore had port
+    if ([null, undefined, ""].indexOf(url.port) == -1) return false;
+
+    return true;
+  }
+
+  function upsertURL() {
+    const url = elmURL.val();
+
+    elmDesc.removeClass("error").removeClass("success").addClass('hidden').off("click");
+
+    $.post(
+      "/api/shorturl/upsert",
+      JSON.stringify({ params: { url } }),
+      (data, status, xhr) => {
+        if (data.error) {
+          elmDesc.addClass("error");
+
+          const e = data.error;
+          console.error(`upsert error:${e.code} ${e.message}`);
+          return;
+        }
+
+        const id = data.data.id;
+        const expire = data.data.expire;
+        console.info(`id ${id} expired after ${expire} seconds`);
+
+        elmDesc.removeClass('hidden').addClass("success");
+
+        const urlShorten = `${prefix}${id}`;
+
+        $("#description .url").text(urlShorten);
+
+        elmDesc.on("click", (event) => {
+          navigator.clipboard.writeText(urlShorten).then(() => {
+            console.info(`url ${urlShorten} is copied`);
+          });
+        });
+      },
+      "json"
+    );
+  }
+
+  $("#form").on("submit", (event) => {
+    event.preventDefault();
+
+    if (!validURL()) return;
+
+    const id = upsertURL();
+  });
+</script>
