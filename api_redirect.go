@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-redis/redis"
 	"github.com/gofiber/fiber/v2"
 	"iscys.com/shorturl/core"
 )
@@ -11,8 +10,8 @@ import (
 func apiRedirect(c *fiber.Ctx) error {
 	keyID := c.Params("name")
 
-	urlOrigin, err := db.Get(fmt.Sprintf("i:%s", keyID)).Result()
-	if redis.Nil == err {
+	urlOrigin, err := backend.Get(fmt.Sprintf("i:%s", keyID))
+	if err == core.ErrObjectNotFound {
 		core.W("id is not found")
 		return core.FiberJSONError(c, 404, core.ErrObjectNotFound)
 	} else if err != nil {

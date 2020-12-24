@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-redis/redis"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/xid"
 	"iscys.com/shorturl/core"
@@ -20,8 +19,8 @@ func apiUpsertQuick(c *fiber.Ctx) error {
 
 	keyOrigin := fmt.Sprintf("u:%s", urlOrigin)
 
-	urlID, err := db.Get(keyOrigin).Result()
-	if redis.Nil == err {
+	urlID, err := backend.Get(keyOrigin)
+	if err == core.ErrObjectNotFound {
 		urlID = xid.New().String()
 	} else if err != nil {
 		core.E("get origin id failed", err)
@@ -29,16 +28,8 @@ func apiUpsertQuick(c *fiber.Ctx) error {
 		return nil
 	}
 
-	pipe := db.Pipeline()
-
-	pipe.Set(keyOrigin, urlID, expireInterval)
-	pipe.Set(fmt.Sprintf("i:%s", urlID), urlOrigin, expireInterval)
-
-	if _, err := pipe.Exec(); err != nil {
-		core.E("pipe failed", err)
-		c.Status(500)
-		return nil
-	}
+	backend.Set(keyOrigin, urlID, expireInterval)
+	backend.Set(fmt.Sprintf("i:%s", urlID), urlOrigin, expireInterval)
 
 	core.I("upsert:%s => %s expired %s", urlID, urlOrigin, expireInterval)
 	c.Status(204)

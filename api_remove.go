@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-redis/redis"
 	"github.com/gofiber/fiber/v2"
 	"iscys.com/shorturl/core"
 )
@@ -22,8 +21,8 @@ func apiRemove(c *fiber.Ctx) error {
 	{
 		keyOrigin = fmt.Sprintf("u:%s", keyRaw)
 
-		keyID, err = db.Get(keyOrigin).Result()
-		if redis.Nil == err {
+		keyID, err = backend.Get(keyOrigin)
+		if err == core.ErrObjectNotFound {
 		} else if err != nil {
 			core.E("get id failed", err)
 			return core.FiberJSONError(c, 500, core.ErrServerError)
@@ -34,8 +33,8 @@ func apiRemove(c *fiber.Ctx) error {
 	}
 
 	{
-		keyOrigin, err = db.Get(fmt.Sprintf("i:%s", keyRaw)).Result()
-		if redis.Nil == err {
+		keyOrigin, err = backend.Get(fmt.Sprintf("i:%s", keyRaw))
+		if err == core.ErrObjectNotFound {
 			core.W("key not found:%s", keyRaw)
 			return core.FiberJSONError(c, 404, core.ErrObjectNotFound)
 		} else if err != nil {
@@ -48,15 +47,8 @@ func apiRemove(c *fiber.Ctx) error {
 
 apiRemoveKeys:
 
-	pipe := db.Pipeline()
-
-	pipe.Del(keyOrigin)
-	pipe.Del(fmt.Sprintf("i:%s", keyID))
-
-	if _, err := pipe.Exec(); err != nil {
-		core.E("pipe failed", err)
-		return core.FiberJSONError(c, 500, core.ErrServerError)
-	}
+	backend.Del(keyOrigin)
+	backend.Del(fmt.Sprintf("i:%s", keyID))
 
 	core.I("remove: %s => %s", keyID, keyOrigin)
 	return core.FiberJSON(c, core.H{"id": keyID})

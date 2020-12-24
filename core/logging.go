@@ -17,9 +17,14 @@ var loggerWarn = log.Logger{
 	Level:  log.WarnLevel,
 	Writer: &log.FileWriter{Filename: "log/warn.log", MaxSize: 70 << 20, MaxBackups: 60},
 }
+
 var loggerError = log.Logger{
-	Level:  log.ErrorLevel,
-	Writer: &log.FileWriter{Filename: "log/error.log", MaxSize: 70 << 20, MaxBackups: 60},
+	Level: log.InfoLevel,
+	Writer: &log.MultiWriter{
+		InfoWriter:    &log.FileWriter{Filename: "log/error.log", MaxSize: 70 << 20, MaxBackups: 60},
+		ConsoleWriter: &log.ConsoleWriter{ColorOutput: true},
+		ConsoleLevel:  log.ErrorLevel,
+	},
 }
 
 // loggerDebug debug logger
