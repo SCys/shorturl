@@ -17,6 +17,7 @@ var (
 
 	redisDSN   = flag.String("redis", "redis://localhost:3200", "--redis redis://localhost:3200/0")
 	listenAddr = flag.String("listen", "127.0.0.1:3100", "--listen 127.0.0.1:3100")
+	hostName   = flag.String("host", "https://mz.ci", "--host https://mz.ci")
 )
 
 func main() {
@@ -51,11 +52,11 @@ func main() {
 	app.Use(
 		core.FiberBasicInfo(),
 		recover.New(),
-		cors.New(cors.Config{AllowOrigins: "https://mz.ci"}),
+		cors.New(cors.Config{AllowOrigins: *hostName}),
 	)
 
 	app.Get("", func(c *fiber.Ctx) error {
-		c.Render("index", nil)
+		c.Render("index", core.H{"Host": *hostName})
 		return nil
 	})
 

@@ -73,9 +73,10 @@
 </html>
 
 <script>
-  const prefix = "https://mz.ci/r/";
+  const prefix = "{{ Host }}/r/";
   const elmURL = $("#url");
   const elmDesc = $("#description");
+  const elmAction = $("#description .action");
 
   function validURL() {
     const url = new URL(elmURL.val());
@@ -91,7 +92,8 @@
   function upsertURL() {
     const url = elmURL.val();
 
-    elmDesc.removeClass("error").removeClass("success").addClass('hidden').off("click");
+    elmDesc.removeClass("error").removeClass("success").addClass("hidden").off("click");
+    elmAction.text("Copy");
 
     $.post(
       "/api/shorturl/upsert",
@@ -109,7 +111,7 @@
         const expire = data.data.expire;
         console.info(`id ${id} expired after ${expire} seconds`);
 
-        elmDesc.removeClass('hidden').addClass("success");
+        elmDesc.removeClass("hidden").addClass("success");
 
         const urlShorten = `${prefix}${id}`;
 
@@ -117,6 +119,7 @@
 
         elmDesc.on("click", (event) => {
           navigator.clipboard.writeText(urlShorten).then(() => {
+            elmAction.text("Copied");
             console.info(`url ${urlShorten} is copied`);
           });
         });
